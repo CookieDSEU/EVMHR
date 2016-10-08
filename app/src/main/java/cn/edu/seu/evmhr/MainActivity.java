@@ -1,19 +1,14 @@
 package cn.edu.seu.evmhr;
-import android.app.ProgressDialog;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.hardware.Camera;
 import android.media.MediaRecorder;
-import android.media.MediaScannerConnection;
-import android.net.Uri;
-import android.os.Build;
 import android.os.CountDownTimer;
 import android.os.PowerManager;
 import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
-import android.text.TextUtils;
-import android.util.Log;
+import android.util.DisplayMetrics;
 import android.view.SurfaceHolder;
 import android.view.SurfaceView;
 import android.view.View;
@@ -32,7 +27,7 @@ import cn.edu.seu.evmhr.Utils.CacheUtil;
 import cn.edu.seu.evmhr.Utils.Utils;
 
 public class MainActivity extends AppCompatActivity implements OnClickListener, SurfaceHolder.Callback, OnErrorListener,OnInfoListener{
-    private final static String CLASS_LABEL = "RecordActivity";
+    private final static String CLASS_LABEL = "MainActivity";
     private PowerManager.WakeLock mWakeLock;
     private ImageView btnStart;// 开始录制按钮
     private ImageView btnStop;// 停止录制按钮
@@ -80,7 +75,10 @@ public class MainActivity extends AppCompatActivity implements OnClickListener, 
 
         mSurfaceHolder = mVideoView.getHolder();
         mSurfaceHolder.addCallback(this);
-        mSurfaceHolder.setType(SurfaceHolder.SURFACE_TYPE_PUSH_BUFFERS);
+        //mSurfaceHolder.setType(SurfaceHolder.SURFACE_TYPE_PUSH_BUFFERS);
+
+
+
     }
     @Override
     protected void onResume() {
@@ -111,8 +109,7 @@ public class MainActivity extends AppCompatActivity implements OnClickListener, 
             mCamera.lock();
             mSurfaceHolder = mVideoView.getHolder();
             mSurfaceHolder.addCallback(this);
-            mSurfaceHolder.setType(SurfaceHolder.SURFACE_TYPE_PUSH_BUFFERS);
-            mCamera.setDisplayOrientation(270);
+            //mCamera.setDisplayOrientation(270);
         } catch (RuntimeException ex) {
             return false;
         }
@@ -120,59 +117,8 @@ public class MainActivity extends AppCompatActivity implements OnClickListener, 
     }
 
     private void handleSurfaceChanged() {
-        if (mCamera == null) {
-            finish();
-            return;
-        }
-        boolean hasSupportRate = false;
-        List<Integer> supportedPreviewFrameRates = mCamera.getParameters().getSupportedPreviewFrameRates();
-        if (supportedPreviewFrameRates != null&& supportedPreviewFrameRates.size() > 0) {
-            Collections.sort(supportedPreviewFrameRates);
-            for (int i = 0; i < supportedPreviewFrameRates.size(); i++) {
-                int supportRate = supportedPreviewFrameRates.get(i);
 
-                if (supportRate == 30) {
-                    hasSupportRate = true;
-                }
-
-            }
-            if (hasSupportRate) {
-                defaultVideoFrameRate = 30;
-            } else {
-                defaultVideoFrameRate = supportedPreviewFrameRates.get(0);
-            }
-
-        }
-        // 获取摄像头的所有支持的分辨率
-        List<Camera.Size> resolutionList = Utils.getResolutionList(mCamera);
-        if (resolutionList != null && resolutionList.size() > 0) {
-            Collections.sort(resolutionList, new Utils.ResolutionComparator());
-            Camera.Size previewSize = null;
-            boolean hasSize = false;
-            // 如果摄像头支持800*480，那么强制设为800*480
-            for (int i = 0; i < resolutionList.size(); i++) {
-                Camera.Size size = resolutionList.get(i);
-                if (size != null && size.width == 800 && size.height == 480) {
-                    previewSize = size;
-                    previewWidth = previewSize.width;
-                    previewHeight = previewSize.height;
-                    hasSize = true;
-                    break;
-                }
-            }
-            // 如果不支持设为中间的那个
-            if (!hasSize) {
-                int mediumResolution = resolutionList.size() / 2;
-                if (mediumResolution >= resolutionList.size())
-                    mediumResolution = resolutionList.size() - 1;
-                previewSize = resolutionList.get(mediumResolution);
-                previewWidth = previewSize.width;
-                previewHeight = previewSize.height;
-
-            }
-
-        }
-
+        surfaceChanged(mSurfaceHolder,0,0,0);
     }
 
     @Override
@@ -220,16 +166,6 @@ public class MainActivity extends AppCompatActivity implements OnClickListener, 
                         .setMessage(st3)
                         .setPositiveButton(R.string.ok,new DialogInterface.OnClickListener() {
                             @Override
-                            public void onClick(DialogInterface arg0,
-                                                int arg1) {
-                                arg0.dismiss();
-                                sendVideo(null);
-
-                            }
-                        })
-                        .setNegativeButton(R.string.cancel,new DialogInterface.OnClickListener() {
-
-                            @Override
                             public void onClick(DialogInterface dialog,int which) {
                                 dialog.dismiss();
                                 if (mCamera == null) {
@@ -255,10 +191,35 @@ public class MainActivity extends AppCompatActivity implements OnClickListener, 
 
     @Override
     public void surfaceChanged(SurfaceHolder holder, int format, int width,int height) {
-        // 将holder，这个holder为开始在onCreate里面取得的holder，将它赋给surfaceHolder
-        mSurfaceHolder = holder;
-    }
+        Camera.Parameters params = mCamera.getParameters();
+        List<Camera.Size> sizes = params.getSupportedPreviewSizes();
+        Camera.Size selectedSize  =getBestSupportPreviewSize(sizes, getScreenSize());
 
+//设定摄像机预览界面尺寸
+        params.setPreviewSize(selectedSize.width, selectedSize.height);
+        mCamera.setParameters(params);
+
+        mCamera.setDisplayOrientation(90);
+        mCamera.startPreview();
+    }
+    public static Camera.Size getBestSupportPreviewSize(List<Camera.Size> previewSizes, Camera.Size screenSize) {
+        double screenRatio = screenSize.width * 1.0 / screenSize.height;
+        Camera.Size maxSize = previewSizes.get(0);
+        for (Camera.Size size : previewSizes) {
+            double sizeRatio = size.width * 1.0 / size.height;
+            if (size.width < 2000 && sizeRatio > screenRatio - 0.1 && sizeRatio < screenRatio + 0.1)
+                maxSize = (size.width > maxSize.width) ? size : maxSize;
+        }
+        return maxSize;
+    }
+    private Camera.Size getScreenSize() {
+        DisplayMetrics metric = new DisplayMetrics();
+        getWindowManager().getDefaultDisplay().getMetrics(metric);
+        int width = metric.widthPixels;  // 宽度（PX）
+        int height = metric.heightPixels;  // 高度（PX）
+
+        return mCamera.new Size(height, width);
+    }
     @Override
     public void surfaceCreated(SurfaceHolder holder) {
         if (mCamera == null) {
@@ -266,12 +227,64 @@ public class MainActivity extends AppCompatActivity implements OnClickListener, 
                 showFailDialog();
                 return;
             }
-
         }
         try {
             mCamera.setPreviewDisplay(mSurfaceHolder);
             mCamera.startPreview();
             handleSurfaceChanged();
+            if (mCamera == null) {
+                finish();
+                return;
+            }
+            //获取摄像头支持的帧率
+            boolean hasSupportRate = false;
+            List<Integer> supportedPreviewFrameRates = mCamera.getParameters().getSupportedPreviewFrameRates();
+            if (supportedPreviewFrameRates != null&& supportedPreviewFrameRates.size() > 0) {
+                Collections.sort(supportedPreviewFrameRates);
+                for (int i = 0; i < supportedPreviewFrameRates.size(); i++) {
+                    int supportRate = supportedPreviewFrameRates.get(i);
+
+                    if (supportRate == 30) {
+                        hasSupportRate = true;
+                    }
+
+                }
+                if (hasSupportRate) {
+                    defaultVideoFrameRate = 30;
+                } else {
+                    defaultVideoFrameRate = supportedPreviewFrameRates.get(0);
+                }
+
+            }
+            // 获取摄像头的所有支持的分辨率
+            List<Camera.Size> resolutionList = Utils.getResolutionList(mCamera);
+            if (resolutionList != null && resolutionList.size() > 0) {
+                Collections.sort(resolutionList, new Utils.ResolutionComparator());
+                Camera.Size previewSize = null;
+                boolean hasSize = false;
+                // 如果摄像头支持800*480，那么强制设为800*480
+                for (int i = 0; i < resolutionList.size(); i++) {
+                    Camera.Size size = resolutionList.get(i);
+                    if (size != null && size.width == 800 && size.height == 480) {
+                        previewSize = size;
+                        previewWidth = previewSize.width;
+                        previewHeight = previewSize.height;
+                        hasSize = true;
+                        break;
+                    }
+                }
+                // 如果不支持设为中间的那个
+                if (!hasSize) {
+                    int mediumResolution = resolutionList.size() / 2;
+                    if (mediumResolution >= resolutionList.size())
+                        mediumResolution = resolutionList.size() - 1;
+                    previewSize = resolutionList.get(mediumResolution);
+                    previewWidth = previewSize.width;
+                    previewHeight = previewSize.height;
+
+                }
+
+            }
         } catch (Exception e1) {
             showFailDialog();
         }
@@ -299,17 +312,19 @@ public class MainActivity extends AppCompatActivity implements OnClickListener, 
             return false;
         }
 
-        if (mCamera == null) {
-            if (!initCamera()) {
-                showFailDialog();
-                return false;
-            }
-        }
+//        if (mCamera == null) {
+//            if (!initCamera()) {
+//                showFailDialog();
+//                return false;
+//            }
+//        }
 
-        mCamera.setDisplayOrientation(90);
         mediaRecorder = new MediaRecorder();
+        //mCamera.setDisplayOrientation(90);
         mCamera.unlock();
+
         mediaRecorder.setCamera(mCamera);
+
         //mediaRecorder.setAudioSource(MediaRecorder.AudioSource.DEFAULT);
         // 设置录制视频源为Camera（相机）
         mediaRecorder.setVideoSource(MediaRecorder.VideoSource.CAMERA);
@@ -383,44 +398,6 @@ public class MainActivity extends AppCompatActivity implements OnClickListener, 
         } catch (Exception e) {
         }
     }
-
-    MediaScannerConnection msc = null;
-    ProgressDialog progressDialog = null;
-
-    public void sendVideo(View view) {
-        if (TextUtils.isEmpty(localPath)) {
-            return;
-        }
-        if (msc == null)
-            msc = new MediaScannerConnection(this,
-                    new MediaScannerConnection.MediaScannerConnectionClient() {
-                        @Override
-                        public void onScanCompleted(String path, Uri uri) {
-                            msc.disconnect();
-                            progressDialog.dismiss();
-                            Log.d("path", "localPaht:" + localPath
-                                    + "&&&&&&path:" + path + "&&&&&&&&&&uri:"
-                                    + uri.getPath());
-                            setResult(RESULT_OK,getIntent().putExtra("path", path));
-                            MainActivity.this.finish();
-                        }
-
-                        @Override
-                        public void onMediaScannerConnected() {
-                            msc.scanFile(localPath, "video/*");
-                        }
-                    });
-
-        if (progressDialog == null) {
-            progressDialog = new ProgressDialog(this);
-            progressDialog.setMessage("保存中...");
-            progressDialog.setCancelable(false);
-        }
-        progressDialog.show();
-        msc.connect();
-
-    }
-
     @Override
     public void onInfo(MediaRecorder mr, int what, int extra) {
         if (what == MediaRecorder.MEDIA_RECORDER_INFO_MAX_DURATION_REACHED) {
@@ -506,30 +483,21 @@ public class MainActivity extends AppCompatActivity implements OnClickListener, 
                     .setMessage(st3)
                     .setPositiveButton(R.string.ok,
                             new DialogInterface.OnClickListener() {
-                                @Override
-                                public void onClick(DialogInterface arg0,
-                                                    int arg1) {
-                                    arg0.dismiss();
-                                    sendVideo(null);
-
-                                }
-                            })
-                    .setNegativeButton(R.string.cancel,
-                            new DialogInterface.OnClickListener() {
-
-                                @Override
-                                public void onClick(DialogInterface dialog,int which) {
-                                    dialog.dismiss();
-                                    if (mCamera == null) {
-                                        initCamera();
+                                    @Override
+                                    public void onClick(DialogInterface dialog,int which) {
+                                        dialog.dismiss();
+                                        if (mCamera == null) {
+                                            initCamera();
+                                        }
+                                        try {
+                                            mCamera.setPreviewDisplay(mSurfaceHolder);
+                                            mCamera.startPreview();
+                                            handleSurfaceChanged();
+                                        } catch (IOException e1) {
+                                        }
+                                        btnStart.setVisibility(View.VISIBLE);
+                                        btnStop.setVisibility(View.INVISIBLE);
                                     }
-                                    try {
-                                        mCamera.setPreviewDisplay(mSurfaceHolder);
-                                        mCamera.startPreview();
-                                        handleSurfaceChanged();
-                                    } catch (IOException e1) {
-                                    }
-                                }
                             })
                     .setCancelable(false).show();
 
@@ -549,6 +517,9 @@ public class MainActivity extends AppCompatActivity implements OnClickListener, 
                 releaseRecorder();
                 VIDEOID++;
                 startRecording();
+                if(VIDEOID==3){
+                    VIDEOID=1;
+                }
             }
             tv.setText((millisUntilFinished / 1000) + "");
         }
