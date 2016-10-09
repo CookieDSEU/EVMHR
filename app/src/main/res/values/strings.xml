@@ -7,4 +7,5 @@
     <string name="The_video_to_start">录像开始</string>
     <string name="Whether_to_send">拍摄完成</string>
     <string name="Open_the_equipment_failure">打开设备失败!</string>
+    <string name="not_support">您的设备尚不支持此APP</string>
 </resources>

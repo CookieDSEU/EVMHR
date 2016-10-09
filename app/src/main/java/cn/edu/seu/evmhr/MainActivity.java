@@ -9,6 +9,7 @@ import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.util.DisplayMetrics;
+import android.util.Log;
 import android.view.SurfaceHolder;
 import android.view.SurfaceView;
 import android.view.View;
@@ -18,6 +19,12 @@ import android.widget.Toast;
 import android.media.MediaRecorder.OnErrorListener;
 import android.media.MediaRecorder.OnInfoListener;
 import android.view.View.OnClickListener;
+
+import com.github.hiteshsondhi88.libffmpeg.ExecuteBinaryResponseHandler;
+import com.github.hiteshsondhi88.libffmpeg.FFmpeg;
+import com.github.hiteshsondhi88.libffmpeg.LoadBinaryResponseHandler;
+import com.github.hiteshsondhi88.libffmpeg.exceptions.FFmpegCommandAlreadyRunningException;
+import com.github.hiteshsondhi88.libffmpeg.exceptions.FFmpegNotSupportedException;
 
 import java.io.IOException;
 import java.util.Collections;
@@ -52,6 +59,7 @@ public class MainActivity extends AppCompatActivity implements OnClickListener, 
 
     private MyCount myCount;
     TextView tv;//显示倒计时数字
+    private FFmpeg ffmpeg;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -60,6 +68,38 @@ public class MainActivity extends AppCompatActivity implements OnClickListener, 
         //getWindow().setFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN, WindowManager.LayoutParams.FLAG_FULLSCREEN);// 设置全屏
         // 选择支持半透明模式，在有surfaceview的activity中使用
         initViews();
+        initFfmepg();
+    }
+
+    private void initFfmepg() {
+        ffmpeg = FFmpeg.getInstance(MainActivity.this);
+        try {
+            ffmpeg.loadBinary(new LoadBinaryResponseHandler() {
+
+                @Override
+                public void onStart() {}
+
+                @Override
+                public void onFailure() {}
+
+                @Override
+                public void onSuccess() {}
+
+                @Override
+                public void onFinish() {}
+            });
+        } catch (FFmpegNotSupportedException e) {
+
+            new AlertDialog.Builder(MainActivity.this)
+                    .setMessage(getString(R.string.not_support))
+                    .setPositiveButton(R.string.ok,new DialogInterface.OnClickListener() {
+                        @Override
+                        public void onClick(DialogInterface dialog,int which) {
+                            finish();
+                        }
+                    })
+                    .setCancelable(false).show();
+        }
     }
 
     private void initViews() {
@@ -383,6 +423,7 @@ public class MainActivity extends AppCompatActivity implements OnClickListener, 
     //释放
     private void releaseRecorder() {
         if (mediaRecorder != null) {
+            mediaRecorder.reset();
             mediaRecorder.release();
             mediaRecorder = null;
         }
@@ -500,7 +541,7 @@ public class MainActivity extends AppCompatActivity implements OnClickListener, 
                                     }
                             })
                     .setCancelable(false).show();
-
+            reformatvideo(3);
         }
 
         @Override
@@ -520,8 +561,49 @@ public class MainActivity extends AppCompatActivity implements OnClickListener, 
                 if(VIDEOID==3){
                     VIDEOID=1;
                 }
+                if (millisUntilFinished / 1000==10){
+                    reformatvideo(1);
+                }
+                else{
+                    reformatvideo(2);
+                }
             }
             tv.setText((millisUntilFinished / 1000) + "");
+        }
+    }
+
+    private void reformatvideo(int id){
+        try {
+            //-c:v mjpeg -an
+            String cmd="-i "+CacheUtil.getSDCacheDir("video") + "/"+ id + ".mp4"+" -c:v mjpeg -an "+CacheUtil.getSDCacheDir("video") + "/"+ id + ".avi";
+            String[] command = cmd.split(" ");
+            ffmpeg.execute(command, new ExecuteBinaryResponseHandler() {
+
+                @Override
+                public void onStart() {
+                }
+
+                @Override
+                public void onProgress(String message) {
+                }
+
+                @Override
+                public void onFailure(String message) {
+                    Log.e("e","fail:"+message);
+                }
+
+                @Override
+                public void onSuccess(String message) {
+                    Log.i("i","success:"+message);
+                }
+
+                @Override
+                public void onFinish() {
+                }
+            });
+        } catch (FFmpegCommandAlreadyRunningException e) {
+            Log.e("e",e.toString());
+            // Handle if FFmpeg is already running
         }
     }
 
