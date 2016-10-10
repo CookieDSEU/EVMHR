@@ -212,6 +212,7 @@ public class MainActivity extends AppCompatActivity implements OnClickListener, 
         switch (view.getId()) {
             case R.id.recorder_start:
                 // 开始录制
+                deletevideo();
                 if (!startRecording())return;
                 Toast.makeText(this, R.string.The_video_to_start,Toast.LENGTH_SHORT).show();
                 btnStart.setVisibility(View.INVISIBLE);
@@ -245,6 +246,7 @@ public class MainActivity extends AppCompatActivity implements OnClickListener, 
                             }
                         })
                         .setCancelable(false).show();
+                deletevideo();
                 break;
 
             default:
@@ -562,6 +564,7 @@ public class MainActivity extends AppCompatActivity implements OnClickListener, 
                                         }
                                         btnStart.setVisibility(View.VISIBLE);
                                         btnStop.setVisibility(View.INVISIBLE);
+                                        deletevideo();
                                     }
 
                             })
