@@ -2,18 +2,24 @@
 #include <string>
 #include "SpatialFilter.h"
 #include "VideoProcessor.h"
+
 extern "C"
 
 jstring
 Java_cn_edu_seu_evmhr_MainActivity_stringFromJNI(
         JNIEnv *env,
-        jobject /* this */) {
+        jobject /* this */,
+        jstring jFileName) {
+    const char* jnamestr = env->GetStringUTFChars(jFileName, NULL);
+
     VideoProcessor VP;
-    bool out = VP.setOutput("output.avi");
-    std::string hello = out?"true":"false";
+    VP.setInput(jnamestr);
 
-    return env->NewStringUTF(hello.c_str());
+    std::stringstream ss;
+    ss << VP.colorMagnify();
+
+    std::string peaks;
+    ss >> peaks;
+
+    return env->NewStringUTF(peaks.c_str());
 }
-
-
-
