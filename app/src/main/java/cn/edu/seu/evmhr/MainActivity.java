@@ -411,8 +411,8 @@ public class MainActivity extends AppCompatActivity implements OnClickListener, 
         // 设置视频文件输出的路径
         localPath = CacheUtil.getSDCacheDir("video") + "/"+ VIDEOID + ".mp4";
         mediaRecorder.setOutputFile(localPath);
-        //设置最大录制视频时间6秒
-        mediaRecorder.setMaxDuration(6000);
+        //设置最大录制视频时间10秒
+        mediaRecorder.setMaxDuration(10000);
         //mediaRecorder.setPreviewDisplay(mSurfaceHolder.getSurface());
         try {
             mediaRecorder.prepare();
