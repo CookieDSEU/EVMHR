@@ -5,6 +5,8 @@ import android.content.DialogInterface;
 import android.hardware.Camera;
 import android.media.MediaRecorder;
 import android.os.CountDownTimer;
+import android.os.Handler;
+import android.os.Message;
 import android.os.PowerManager;
 import android.support.v7.app.ActionBarDrawerToggle;
 import android.support.v7.app.AlertDialog;
@@ -65,6 +67,7 @@ public class MainActivity extends AppCompatActivity implements OnClickListener, 
     TextView tv;//显示倒计时数字
     private FFmpeg ffmpeg;
     private ProgressDialog mProgressDialog;
+    private int result;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -186,7 +189,7 @@ public class MainActivity extends AppCompatActivity implements OnClickListener, 
     @Override
     protected void onStart() {
         super.onStart();
-        myCount = new MyCount(15 * 1000, 1000);
+        myCount = new MyCount(10 * 1000, 1000);
     }
 
     @Override
@@ -223,9 +226,8 @@ public class MainActivity extends AppCompatActivity implements OnClickListener, 
                 stopRecording();
                 btnStart.setVisibility(View.VISIBLE);
                 btnStop.setVisibility(View.INVISIBLE);
-                String st3 = getResources().getString(R.string.Whether_to_send);
                 new AlertDialog.Builder(MainActivity.this)
-                        .setMessage(st3)
+                        .setMessage(getString(R.string.stopped))
                         .setPositiveButton(R.string.ok,new DialogInterface.OnClickListener() {
                             @Override
                             public void onClick(DialogInterface dialog,int which) {
@@ -541,7 +543,7 @@ public class MainActivity extends AppCompatActivity implements OnClickListener, 
         public void onFinish() {
             stopRecording();
             tv.setText("");
-            String st3 = getResources().getString(R.string.Whether_to_send);
+            String st3 = getResources().getString(R.string.complete);
             new AlertDialog.Builder(MainActivity.this)
                     .setMessage(st3)
                     .setPositiveButton(R.string.ok,
@@ -564,46 +566,14 @@ public class MainActivity extends AppCompatActivity implements OnClickListener, 
 
                             })
                     .setCancelable(false).show();
-            reformatvideo(3);
+            mProgressDialog.setTitle("计算中，请稍候。。。");
+            mProgressDialog.setCancelable(false);
+            mProgressDialog.show();
+            reformatvideo(1);
         }
 
         @Override
         public void onTick(long millisUntilFinished) {
-            if(millisUntilFinished / 1000==10||millisUntilFinished / 1000 == 5){
-                if (mediaRecorder != null) {
-                    mediaRecorder.setOnErrorListener(null);
-                    mediaRecorder.setOnInfoListener(null);
-                    try {
-                        mediaRecorder.stop();
-                    } catch (IllegalStateException e) {
-                    }
-                }
-                releaseRecorder();
-                VIDEOID++;
-                startRecording();
-                if(VIDEOID==3){
-                    VIDEOID=1;
-                }
-                if (millisUntilFinished / 1000==10){
-                    Thread thread=new Thread(new Runnable() {
-                        @Override
-                        public void run() {
-                            reformatvideo(1);
-                        }
-                    });
-                    thread.start();
-
-                }
-                else{
-                    Thread thread=new Thread(new Runnable() {
-                        @Override
-                        public void run() {
-                            reformatvideo(2);
-                        }
-                    });
-                    thread.start();
-                }
-            }
             tv.setText((millisUntilFinished / 1000) + "");
         }
     }
@@ -613,23 +583,7 @@ public class MainActivity extends AppCompatActivity implements OnClickListener, 
         if(file.exists()){
             file.delete();
         }
-        file=new File(CacheUtil.getSDCacheDir("video")+"/2.mp4");
-        if(file.exists()){
-            file.delete();
-        }
-        file=new File(CacheUtil.getSDCacheDir("video")+"/3.mp4");
-        if(file.exists()){
-            file.delete();
-        }
         file=new File(CacheUtil.getSDCacheDir("video")+"/1.avi");
-        if(file.exists()){
-            file.delete();
-        }
-        file=new File(CacheUtil.getSDCacheDir("video")+"/2.avi");
-        if(file.exists()){
-            file.delete();
-        }
-        file=new File(CacheUtil.getSDCacheDir("video")+"/3.avi");
         if(file.exists()){
             file.delete();
         }
@@ -657,7 +611,16 @@ public class MainActivity extends AppCompatActivity implements OnClickListener, 
                 @Override
                 public void onSuccess(String message) {
                     Log.i("i","success:"+message);
-                    //Log.i("i",stringFromJNI(CacheUtil.getSDCacheDir("video") + "/"+ id + ".avi"));
+                    Thread thread=new Thread(new Runnable() {
+                        @Override
+                        public void run() {
+                            result = Integer.parseInt(stringFromJNI(CacheUtil.getSDCacheDir("video") + "/"+ id + ".avi"))*6;
+                            Message msg = new Message();
+                            msg.what = 1;
+                            mHandler.sendMessage(msg);
+                        }
+                    });
+                    thread.start();
                 }
 
                 @Override
@@ -669,6 +632,18 @@ public class MainActivity extends AppCompatActivity implements OnClickListener, 
             // Handle if FFmpeg is already running
         }
     }
+    private Handler mHandler = new Handler(){
+        // 覆写这个方法，接收并处理消息。
+        @Override
+        public void handleMessage(Message msg) {
+            switch (msg.what){
+                case 1:
+                    tv.setText("心率："+ result);
+                    mProgressDialog.dismiss();
+                    break;
+            }
+        }
+    };
 
     /**
      * A native method that is implemented by the 'native-lib' native library,
