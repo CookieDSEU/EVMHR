@@ -1,10 +1,12 @@
 package cn.edu.seu.evmhr;
+import android.app.ProgressDialog;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.hardware.Camera;
 import android.media.MediaRecorder;
 import android.os.CountDownTimer;
 import android.os.PowerManager;
+import android.support.v7.app.ActionBarDrawerToggle;
 import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
@@ -14,6 +16,7 @@ import android.view.SurfaceHolder;
 import android.view.SurfaceView;
 import android.view.View;
 import android.widget.ImageView;
+import android.widget.ProgressBar;
 import android.widget.TextView;
 import android.widget.Toast;
 import android.media.MediaRecorder.OnErrorListener;
@@ -26,6 +29,7 @@ import com.github.hiteshsondhi88.libffmpeg.LoadBinaryResponseHandler;
 import com.github.hiteshsondhi88.libffmpeg.exceptions.FFmpegCommandAlreadyRunningException;
 import com.github.hiteshsondhi88.libffmpeg.exceptions.FFmpegNotSupportedException;
 
+import java.io.File;
 import java.io.IOException;
 import java.util.Collections;
 import java.util.List;
@@ -60,6 +64,7 @@ public class MainActivity extends AppCompatActivity implements OnClickListener, 
     private MyCount myCount;
     TextView tv;//显示倒计时数字
     private FFmpeg ffmpeg;
+    private ProgressDialog mProgressDialog;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -73,17 +78,34 @@ public class MainActivity extends AppCompatActivity implements OnClickListener, 
 
     private void initFfmepg() {
         ffmpeg = FFmpeg.getInstance(MainActivity.this);
+        mProgressDialog = new ProgressDialog(MainActivity.this);
+        mProgressDialog.setTitle(getString(R.string.initing));
+        mProgressDialog.show();
         try {
             ffmpeg.loadBinary(new LoadBinaryResponseHandler() {
 
                 @Override
-                public void onStart() {}
+                public void onStart() {
+
+                }
 
                 @Override
-                public void onFailure() {}
+                public void onFailure() {
+                    new AlertDialog.Builder(MainActivity.this)
+                    .setMessage(getString(R.string.initfail))
+                            .setPositiveButton(R.string.ok,new DialogInterface.OnClickListener() {
+                                @Override
+                                public void onClick(DialogInterface dialog,int which) {
+                                    finish();
+                                }
+                            })
+                            .setCancelable(false).show();
+                }
 
                 @Override
-                public void onSuccess() {}
+                public void onSuccess() {
+                    mProgressDialog.dismiss();
+                }
 
                 @Override
                 public void onFinish() {}
@@ -470,7 +492,7 @@ public class MainActivity extends AppCompatActivity implements OnClickListener, 
             mWakeLock.release();
             mWakeLock = null;
         }
-
+        deletevideo();
     }
 
     @Override
@@ -539,6 +561,7 @@ public class MainActivity extends AppCompatActivity implements OnClickListener, 
                                         btnStart.setVisibility(View.VISIBLE);
                                         btnStop.setVisibility(View.INVISIBLE);
                                     }
+
                             })
                     .setCancelable(false).show();
             reformatvideo(3);
@@ -562,17 +585,56 @@ public class MainActivity extends AppCompatActivity implements OnClickListener, 
                     VIDEOID=1;
                 }
                 if (millisUntilFinished / 1000==10){
-                    reformatvideo(1);
+                    Thread thread=new Thread(new Runnable() {
+                        @Override
+                        public void run() {
+                            reformatvideo(1);
+                        }
+                    });
+                    thread.start();
+
                 }
                 else{
-                    reformatvideo(2);
+                    Thread thread=new Thread(new Runnable() {
+                        @Override
+                        public void run() {
+                            reformatvideo(2);
+                        }
+                    });
+                    thread.start();
                 }
             }
             tv.setText((millisUntilFinished / 1000) + "");
         }
     }
 
-    private void reformatvideo(int id){
+    private void deletevideo(){
+        File file=new File(CacheUtil.getSDCacheDir("video")+"/1.mp4");
+        if(file.exists()){
+            file.delete();
+        }
+        file=new File(CacheUtil.getSDCacheDir("video")+"/2.mp4");
+        if(file.exists()){
+            file.delete();
+        }
+        file=new File(CacheUtil.getSDCacheDir("video")+"/3.mp4");
+        if(file.exists()){
+            file.delete();
+        }
+        file=new File(CacheUtil.getSDCacheDir("video")+"/1.avi");
+        if(file.exists()){
+            file.delete();
+        }
+        file=new File(CacheUtil.getSDCacheDir("video")+"/2.avi");
+        if(file.exists()){
+            file.delete();
+        }
+        file=new File(CacheUtil.getSDCacheDir("video")+"/3.avi");
+        if(file.exists()){
+            file.delete();
+        }
+    }
+    private void reformatvideo(final int id){
         try {
             //-c:v mjpeg -an
             String cmd="-i "+CacheUtil.getSDCacheDir("video") + "/"+ id + ".mp4"+" -c:v mjpeg -an "+CacheUtil.getSDCacheDir("video") + "/"+ id + ".avi";
@@ -595,6 +657,7 @@ public class MainActivity extends AppCompatActivity implements OnClickListener, 
                 @Override
                 public void onSuccess(String message) {
                     Log.i("i","success:"+message);
+                    //Log.i("i",stringFromJNI(CacheUtil.getSDCacheDir("video") + "/"+ id + ".avi"));
                 }
 
                 @Override
@@ -611,7 +674,7 @@ public class MainActivity extends AppCompatActivity implements OnClickListener, 
      * A native method that is implemented by the 'native-lib' native library,
      * which is packaged with this application.
      */
-    public native String stringFromJNI();
+    public native String stringFromJNI(String a);
 
     // Used to load the 'native-lib' library on application startup.
     static {

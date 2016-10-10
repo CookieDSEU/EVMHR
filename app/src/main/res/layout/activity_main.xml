@@ -17,7 +17,7 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_centerInParent="true"
-            android:text="evmhr"
+            android:text="EVMHR"
             android:textColor="#ffffff"
             android:textSize="18sp" />
     </RelativeLayout>
@@ -30,36 +30,51 @@
             android:id="@+id/mVideoView"
             android:layout_width="fill_parent"
             android:layout_height="fill_parent" />
-
-        <TextView
-            android:id="@+id/tv"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_centerHorizontal="true"
+        <RelativeLayout
+            android:layout_width="match_parent"
+            android:layout_height="60dp"
             android:layout_alignParentTop="true"
-            android:layout_marginTop="36dp"
-            android:textColor="#FFF"
-            android:textSize="36sp" />
-
-        <ImageView
-            android:id="@+id/recorder_start"
-            android:layout_width="60dp"
+            android:layout_centerHorizontal="true"
+            android:gravity="center"
+            android:background="#161616">
+            <TextView
+                android:id="@+id/tv"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_centerHorizontal="true"
+                android:layout_alignParentTop="true"
+                android:textColor="#FFF"
+                android:textSize="36sp" />
+        </RelativeLayout>
+        <RelativeLayout
+            android:layout_width="match_parent"
             android:layout_height="60dp"
             android:layout_alignParentBottom="true"
             android:layout_centerHorizontal="true"
             android:gravity="center"
-            android:src="@drawable/video_recorder_start_btn"
-            android:visibility="visible" />
+            android:background="#161616">
+            <ImageView
+                android:id="@+id/recorder_start"
+                android:layout_width="60dp"
+                android:layout_height="60dp"
+                android:layout_alignParentBottom="true"
+                android:layout_centerHorizontal="true"
+                android:gravity="center"
+                android:src="@drawable/video_recorder_start_btn"
+                android:visibility="visible" />
 
-        <ImageView
-            android:id="@+id/recorder_stop"
-            android:layout_width="60dp"
-            android:layout_height="60dp"
-            android:layout_alignParentBottom="true"
-            android:layout_centerHorizontal="true"
-            android:gravity="center"
-            android:src="@drawable/video_recorder_stop_btn"
-            android:visibility="invisible" />
+            <ImageView
+                android:id="@+id/recorder_stop"
+                android:layout_width="60dp"
+                android:layout_height="60dp"
+                android:layout_alignParentBottom="true"
+                android:layout_centerHorizontal="true"
+                android:gravity="center"
+                android:src="@drawable/video_recorder_stop_btn"
+                android:visibility="invisible" />
+        </RelativeLayout>
+
+
     </RelativeLayout>
 
 </LinearLayout>
