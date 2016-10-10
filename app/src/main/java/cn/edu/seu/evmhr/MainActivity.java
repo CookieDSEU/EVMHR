@@ -1,10 +1,14 @@
 package cn.edu.seu.evmhr;
+import android.app.ProgressDialog;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.hardware.Camera;
 import android.media.MediaRecorder;
 import android.os.CountDownTimer;
+import android.os.Handler;
+import android.os.Message;
 import android.os.PowerManager;
+import android.support.v7.app.ActionBarDrawerToggle;
 import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
@@ -14,6 +18,7 @@ import android.view.SurfaceHolder;
 import android.view.SurfaceView;
 import android.view.View;
 import android.widget.ImageView;
+import android.widget.ProgressBar;
 import android.widget.TextView;
 import android.widget.Toast;
 import android.media.MediaRecorder.OnErrorListener;
@@ -26,6 +31,7 @@ import com.github.hiteshsondhi88.libffmpeg.LoadBinaryResponseHandler;
 import com.github.hiteshsondhi88.libffmpeg.exceptions.FFmpegCommandAlreadyRunningException;
 import com.github.hiteshsondhi88.libffmpeg.exceptions.FFmpegNotSupportedException;
 
+import java.io.File;
 import java.io.IOException;
 import java.util.Collections;
 import java.util.List;
@@ -60,6 +66,8 @@ public class MainActivity extends AppCompatActivity implements OnClickListener, 
     private MyCount myCount;
     TextView tv;//显示倒计时数字
     private FFmpeg ffmpeg;
+    private ProgressDialog mProgressDialog;
+    private int result;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -73,17 +81,34 @@ public class MainActivity extends AppCompatActivity implements OnClickListener, 
 
     private void initFfmepg() {
         ffmpeg = FFmpeg.getInstance(MainActivity.this);
+        mProgressDialog = new ProgressDialog(MainActivity.this);
+        mProgressDialog.setTitle(getString(R.string.initing));
+        mProgressDialog.show();
         try {
             ffmpeg.loadBinary(new LoadBinaryResponseHandler() {
 
                 @Override
-                public void onStart() {}
+                public void onStart() {
+
+                }
 
                 @Override
-                public void onFailure() {}
+                public void onFailure() {
+                    new AlertDialog.Builder(MainActivity.this)
+                    .setMessage(getString(R.string.initfail))
+                            .setPositiveButton(R.string.ok,new DialogInterface.OnClickListener() {
+                                @Override
+                                public void onClick(DialogInterface dialog,int which) {
+                                    finish();
+                                }
+                            })
+                            .setCancelable(false).show();
+                }
 
                 @Override
-                public void onSuccess() {}
+                public void onSuccess() {
+                    mProgressDialog.dismiss();
+                }
 
                 @Override
                 public void onFinish() {}
@@ -164,7 +189,7 @@ public class MainActivity extends AppCompatActivity implements OnClickListener, 
     @Override
     protected void onStart() {
         super.onStart();
-        myCount = new MyCount(15 * 1000, 1000);
+        myCount = new MyCount(10 * 1000, 1000);
     }
 
     @Override
@@ -201,9 +226,8 @@ public class MainActivity extends AppCompatActivity implements OnClickListener, 
                 stopRecording();
                 btnStart.setVisibility(View.VISIBLE);
                 btnStop.setVisibility(View.INVISIBLE);
-                String st3 = getResources().getString(R.string.Whether_to_send);
                 new AlertDialog.Builder(MainActivity.this)
-                        .setMessage(st3)
+                        .setMessage(getString(R.string.stopped))
                         .setPositiveButton(R.string.ok,new DialogInterface.OnClickListener() {
                             @Override
                             public void onClick(DialogInterface dialog,int which) {
@@ -389,8 +413,8 @@ public class MainActivity extends AppCompatActivity implements OnClickListener, 
         // 设置视频文件输出的路径
         localPath = CacheUtil.getSDCacheDir("video") + "/"+ VIDEOID + ".mp4";
         mediaRecorder.setOutputFile(localPath);
-        //设置最大录制视频时间6秒
-        mediaRecorder.setMaxDuration(6000);
+        //设置最大录制视频时间10秒
+        mediaRecorder.setMaxDuration(10000);
         //mediaRecorder.setPreviewDisplay(mSurfaceHolder.getSurface());
         try {
             mediaRecorder.prepare();
@@ -470,7 +494,7 @@ public class MainActivity extends AppCompatActivity implements OnClickListener, 
             mWakeLock.release();
             mWakeLock = null;
         }
-
+        deletevideo();
     }
 
     @Override
@@ -519,7 +543,7 @@ public class MainActivity extends AppCompatActivity implements OnClickListener, 
         public void onFinish() {
             stopRecording();
             tv.setText("");
-            String st3 = getResources().getString(R.string.Whether_to_send);
+            String st3 = getResources().getString(R.string.complete);
             new AlertDialog.Builder(MainActivity.this)
                     .setMessage(st3)
                     .setPositiveButton(R.string.ok,
@@ -539,40 +563,32 @@ public class MainActivity extends AppCompatActivity implements OnClickListener, 
                                         btnStart.setVisibility(View.VISIBLE);
                                         btnStop.setVisibility(View.INVISIBLE);
                                     }
+
                             })
                     .setCancelable(false).show();
-            reformatvideo(3);
+            mProgressDialog.setTitle("计算中，请稍候。。。");
+            mProgressDialog.setCancelable(false);
+            mProgressDialog.show();
+            reformatvideo(1);
         }
 
         @Override
         public void onTick(long millisUntilFinished) {
-            if(millisUntilFinished / 1000==10||millisUntilFinished / 1000 == 5){
-                if (mediaRecorder != null) {
-                    mediaRecorder.setOnErrorListener(null);
-                    mediaRecorder.setOnInfoListener(null);
-                    try {
-                        mediaRecorder.stop();
-                    } catch (IllegalStateException e) {
-                    }
-                }
-                releaseRecorder();
-                VIDEOID++;
-                startRecording();
-                if(VIDEOID==3){
-                    VIDEOID=1;
-                }
-                if (millisUntilFinished / 1000==10){
-                    reformatvideo(1);
-                }
-                else{
-                    reformatvideo(2);
-                }
-            }
             tv.setText((millisUntilFinished / 1000) + "");
         }
     }
 
-    private void reformatvideo(int id){
+    private void deletevideo(){
+        File file=new File(CacheUtil.getSDCacheDir("video")+"/1.mp4");
+        if(file.exists()){
+            file.delete();
+        }
+        file=new File(CacheUtil.getSDCacheDir("video")+"/1.avi");
+        if(file.exists()){
+            file.delete();
+        }
+    }
+    private void reformatvideo(final int id){
         try {
             //-c:v mjpeg -an
             String cmd="-i "+CacheUtil.getSDCacheDir("video") + "/"+ id + ".mp4"+" -c:v mjpeg -an "+CacheUtil.getSDCacheDir("video") + "/"+ id + ".avi";
@@ -595,6 +611,16 @@ public class MainActivity extends AppCompatActivity implements OnClickListener, 
                 @Override
                 public void onSuccess(String message) {
                     Log.i("i","success:"+message);
+                    Thread thread=new Thread(new Runnable() {
+                        @Override
+                        public void run() {
+                            result = Integer.parseInt(stringFromJNI(CacheUtil.getSDCacheDir("video") + "/"+ id + ".avi"))*6;
+                            Message msg = new Message();
+                            msg.what = 1;
+                            mHandler.sendMessage(msg);
+                        }
+                    });
+                    thread.start();
                 }
 
                 @Override
@@ -606,12 +632,24 @@ public class MainActivity extends AppCompatActivity implements OnClickListener, 
             // Handle if FFmpeg is already running
         }
     }
+    private Handler mHandler = new Handler(){
+        // 覆写这个方法，接收并处理消息。
+        @Override
+        public void handleMessage(Message msg) {
+            switch (msg.what){
+                case 1:
+                    tv.setText("心率："+ result);
+                    mProgressDialog.dismiss();
+                    break;
+            }
+        }
+    };
 
     /**
      * A native method that is implemented by the 'native-lib' native library,
      * which is packaged with this application.
      */
-    public native String stringFromJNI();
+    public native String stringFromJNI(String a);
 
     // Used to load the 'native-lib' library on application startup.
     static {
