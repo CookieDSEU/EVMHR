@@ -140,7 +140,7 @@ public:
 	void motionMagnify();
 
 	// color magnification
-	void colorMagnify();
+	int colorMagnify();
 
 	// write the processed result
 	void writeOutput();
