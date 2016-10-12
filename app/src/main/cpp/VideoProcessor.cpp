@@ -669,6 +669,69 @@ void VideoProcessor::playIt()
 }
 
 /**
+* findPeaks	-	find peaks in the curve
+*
+*/
+int findPeaks(std::vector<double> smoothedData) {
+	double diff;
+	std::vector<int> sign;
+	for (int i = 1; i < smoothedData.size(); ++i) {
+		diff = smoothedData[i] - smoothedData[i - 1];
+		if (diff > 0) {
+			sign.push_back(1);
+		}
+		else if (diff < 0) {
+			sign.push_back(-1);
+		}
+		else {
+			sign.push_back(0);
+		}
+	}
+	int peaks = 0;
+	for (int j = 1; j < sign.size(); j++) {
+		diff = sign[j] - sign[j - 1];
+		if (diff < 0) {
+			peaks++;
+		}
+	}
+	return peaks;
+}
+
+/**
+* smooth   - 	smooth the curve with Moving Average Filtering
+*
+*/
+void smooth(std::vector<double> input_data, unsigned int len, std::vector<double> & output_data, unsigned int span) {
+	unsigned int i = 0, j = 0;
+	unsigned int pn = 0, n = 0;
+	double sum = 0.0;
+
+	if (span % 2 == 1) {
+		n = (span - 1) / 2;
+	}
+	else{
+		n = (span - 2) / 2;
+	}
+
+	for (i = 0; i < len; ++i) {
+		pn = n;
+
+		if (i < n) {
+			pn = i;
+		}
+		else if ((len - 1 - i) < n) {
+			pn = len - i - 1;
+		}
+
+		sum = 0.0;
+		for (j = i - pn; j <= i + pn; ++j) {
+			sum += input_data[j];
+		}
+		output_data.push_back(sum / (pn * 2 + 1));
+	}
+}
+
+/**
 * colorMagnify	-	color magnification
 *
 */
@@ -754,7 +817,6 @@ int VideoProcessor::colorMagnify()
 	deConcat(filtered, downSampledFrames.at(0).size(), filteredFrames);
 
 	cv::Mat cl[3];
-	std::vector<int> sign;
 	std::vector<double> markdata;
 
 	// 6. amplify each frame
@@ -783,42 +845,9 @@ int VideoProcessor::colorMagnify()
 	}
 
 	// Smooth the curve
-	for (int i = 0; i < (markdata.size()-2)/3; ++i) {
-		markdata[3*i+1] = (markdata[3*i] + markdata[3*i + 2]) / 2;
-	}
+	std::vector<double> smoothedData;
+	smooth(markdata, markdata.size(), smoothedData, 11);
 
 	// Find Peaks
-	int diff;
-	for (int i = 1; i < markdata.size(); ++i) {
-		diff = markdata[i]- markdata[i-1];
-		if (diff > 0)
-		{
-			sign.push_back(1);
-		}
-		else if (diff < 0)
-		{
-			sign.push_back(-1);
-		}
-		else
-		{
-			sign.push_back(0);
-		}
-	}
-	int peaks=0;
-	for (int j = 1; j < sign.size(); j++)
-	{
-		int diff = sign[j] - sign[j - 1];
-		if (diff < 0)
-		{
-			peaks++;
-		}
-	}
-
-	return peaks;
-
-	// release the temp writer
-	//tempWriter.release();
-
-	// change the video to the processed video
-	//setInput(tempFile);
+	return findPeaks(smoothedData);
 }
