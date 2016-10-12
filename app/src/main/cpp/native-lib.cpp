@@ -14,12 +14,15 @@ Java_cn_edu_seu_evmhr_MainActivity_stringFromJNI(
 
     VideoProcessor VP;
     VP.setInput(jnamestr);
+        
+    double length = VP.getLengthMS() / 1000;
+    int peaks = VP.colorMagnify();
 
     std::stringstream ss;
-    ss << VP.colorMagnify();
+    ss << std::floor(60 / length * peaks);
 
-    std::string peaks;
-    ss >> peaks;
+    std::string heartRate;
+    ss >> heartRate;
 
-    return env->NewStringUTF(peaks.c_str());
+    return env->NewStringUTF(heartRate.c_str());
 }
