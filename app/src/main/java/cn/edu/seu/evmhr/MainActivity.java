@@ -67,7 +67,7 @@ public class MainActivity extends AppCompatActivity implements OnClickListener, 
     TextView tv;//显示倒计时数字
     private FFmpeg ffmpeg;
     private ProgressDialog mProgressDialog;
-    private int result;
+    private String result;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -614,7 +614,7 @@ public class MainActivity extends AppCompatActivity implements OnClickListener, 
                     Thread thread=new Thread(new Runnable() {
                         @Override
                         public void run() {
-                            result = Integer.parseInt(stringFromJNI(CacheUtil.getSDCacheDir("video") + "/"+ id + ".avi"))*6;
+                            result = stringFromJNI(CacheUtil.getSDCacheDir("video") + "/"+ id + ".avi");
                             Message msg = new Message();
                             msg.what = 1;
                             mHandler.sendMessage(msg);
