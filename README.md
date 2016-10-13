@@ -6,6 +6,8 @@ EVMHR is an Android app for detecting human heart rate by analysing the video of
 
 Here is a simple *demo*:
 
+Please hold your phone steadily and make your face fill the screen, and try to use this app at a place with good lighting condition.
+
 ## How to use
 
 ### Android Studio
@@ -30,7 +32,7 @@ dependencies {
 
 ### OpenCV
 
-This project is based on OpenCV4Android 3.1.0, you can download it from [here](https://sourceforge.net/projects/opencvlibrary/files/opencv-android/). We only need the native folder, so copy it to the same level beside your app folder.
+This project is based on OpenCV4Android 3.1.0, you can download it from [here](https://sourceforge.net/projects/opencvlibrary/files/opencv-android/). We only need the `native` folder, so copy it into `\src\main\cpp`.
 
 ### NDK
 
@@ -44,10 +46,6 @@ externalNativeBuild {
 	}
 }
 ```
-
-In app/src/main/cpp fold, edit the `Android.mk` file and adapt the path of `openCV.mk` to your own
-
-`include PathTo \native\jni\OpenCV.mk`
 
 If you add your own .cpp files, don't forget to add them into `LOCAL_SRC_FILES`  
 
