@@ -10,7 +10,7 @@ OPENCV_LIB_TYPE := STATIC
 
 #设定OpenCV.mk文件的地址
 ifeq ("$(wildcard $(OPENCV_MK_PATH))","")
-include E:\JAVA_soft\EVMHR\native\jni\OpenCV.mk  #注意这里要根据自己的native地址修改
+include $(LOCAL_PATH)\native\jni\OpenCV.mk
 else
 include $(OPENCV_MK_PATH)
 endif
