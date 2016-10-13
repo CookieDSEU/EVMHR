@@ -21,99 +21,26 @@
 #include "VideoProcessor.h"
 
 VideoProcessor::VideoProcessor(){
-	delay=-1;
-	rate=0;
-	fnumber=0;
-	length=0;
-	stop=true;
-	modify=false;
-	curPos=0;
-	curIndex=0;
-	curLevel=0;
-	digits=0;
-	extension=".avi";
-	levels=4;
-	alpha=50;	// 放大倍数
-	lambda_c=80;
-	fl=0.83;	// 下限频率
-	fh=1;	// 上限频率
-	chromAttenuation=0.1;
-	delta=0;
-	exaggeration_factor=2.0;
-	lambda=0;
-}
-
-/**
-* setDelay	-	 set a delay between each frame
-*
-* 0 means wait at each frame,
-* negative means no delay
-* @param d	-	delay param
-*/
-void VideoProcessor::setDelay(int d)
-{
-	delay = d;
-}
-
-/**
-* getNumberOfProcessedFrames	-	a count is kept of the processed frames
-*
-*
-* @return the number of processed frames
-*/
-long VideoProcessor::getNumberOfProcessedFrames()
-{
-	return fnumber;
-}
-
-/**
-* getNumberOfPlayedFrames	-	get the current playing progress
-*
-* @return the number of played frames
-*/
-long VideoProcessor::getNumberOfPlayedFrames()
-{
-	return curPos;
-}
-
-/**
-* getFrameSize	-	return the size of the video frame
-*
-*
-* @return the size of the video frame
-*/
-cv::Size VideoProcessor::getFrameSize()
-{
-	// static_cast<int>作用类似(int) value
-	int w = static_cast<int>(capture.get(CV_CAP_PROP_FRAME_WIDTH));
-	int h = static_cast<int>(capture.get(CV_CAP_PROP_FRAME_HEIGHT));
-
-	return cv::Size(w, h);
-}
-
-/**
-* getFrameNumber	-	return the frame number of the next frame
-*
-*
-* @return the frame number of the next frame
-*/
-long VideoProcessor::getFrameNumber()
-{
-	long f = static_cast<long>(capture.get(CV_CAP_PROP_POS_FRAMES));
-
-	return f;
-}
-
-/**
-* getPositionMS	-	return the position in milliseconds
-*
-* @return the position in milliseconds
-*/
-double VideoProcessor::getPositionMS()
-{
-	double t = capture.get(CV_CAP_PROP_POS_MSEC);
-
-	return t;
+	delay = -1;
+	rate = 0;
+	fnumber = 0;
+	length = 0;
+	stop = true;
+	modify = false;
+	curPos = 0;
+	curIndex = 0;
+	curLevel = 0;
+	digits = 0;
+	extension = ".avi";
+	levels = 4;
+	alpha = 50;	// 放大倍数
+	lambda_c = 80;
+	fl = 0.83;	// 下限频率
+	fh = 1;	// 上限频率
+	chromAttenuation = 0.1;
+	delta = 0;
+	exaggeration_factor = 2.0;
+	lambda = 0;
 }
 
 /**
@@ -130,17 +57,6 @@ double VideoProcessor::getFrameRate()
 }
 
 /**
-* getLength	-	return the number of frames in video
-*
-* @return the number of frames
-*/
-long VideoProcessor::getLength()
-{
-	return length;
-}
-
-
-/**
 * getLengthMS	-	return the video length in milliseconds
 *
 *
@@ -150,24 +66,6 @@ double VideoProcessor::getLengthMS()
 {
 	double l = 1000.0 * length / rate;
 	return l;
-}
-
-/**
-* calculateLength	-	recalculate the number of frames in video
-*
-* normally doesn't need it unless getLength()
-* can't return a valid value
-*/
-void VideoProcessor::calculateLength()
-{
-	long l = 0;
-	cv::Mat img;
-	cv::VideoCapture tempCapture(tempFile);
-	while (tempCapture.read(img)){
-		++l;
-	}
-	length = l;
-	tempCapture.release();
 }
 
 /**
@@ -309,22 +207,6 @@ void VideoProcessor::amplify(const cv::Mat &src, cv::Mat &dst)
 }
 
 /**
-* attenuate	-	attenuate I, Q channels
-*
-* @param src	-	source image
-* @param dst   -   destinate image
-*/
-void VideoProcessor::attenuate(cv::Mat &src, cv::Mat &dst)
-{
-	cv::Mat planes[3];
-	cv::split(src, planes);
-	planes[1] = planes[1] * chromAttenuation;
-	planes[2] = planes[2] * chromAttenuation;
-	cv::merge(planes, 3, dst);
-}
-
-
-/**
 * concat	-	concat all the frames into a single large Mat
 *              where each column is a reshaped single frame
 *
@@ -399,57 +281,6 @@ void VideoProcessor::createIdealBandpassFilter(cv::Mat &filter, double fl, doubl
 }
 
 /**
-* getCodec	-	get the codec of input video
-*
-* @param codec	-	the codec arrays
-*
-* @return the codec integer
-*/
-int VideoProcessor::getCodec(char codec[])
-{
-	union {
-		int value;
-		char code[4];
-	} returned;
-
-	returned.value = static_cast<int>(capture.get(CV_CAP_PROP_FOURCC));
-
-	codec[0] = returned.code[0];
-	codec[1] = returned.code[1];
-	codec[2] = returned.code[2];
-	codec[3] = returned.code[3];
-
-	return returned.value;
-}
-
-
-/**
-* getTempFile	-	temp file lists
-*
-* @param str	-	the reference of the output string
-*/
-void VideoProcessor::getTempFile(std::string &str)
-{
-	if (!tempFileList.empty()){
-		str = tempFileList.back();
-		tempFileList.pop_back();
-	}
-	else {
-		str = "";
-	}
-}
-
-/**
-* getCurTempFile	-	get current temp file
-*
-* @param str	-	the reference of the output string
-*/
-void VideoProcessor::getCurTempFile(std::string &str)
-{
-	str = tempFile;
-}
-
-/**
 * setInput	-	set the name of the expected video file
 *
 * @param fileName	-	the name of the video file
@@ -509,45 +340,6 @@ void VideoProcessor::setTemporalFilter(temporalFilterType type)
 }
 
 /**
-* jumpTo	-	Jump to a position
-*
-* @param index	-	frame index
-*
-* @return True if success. False otherwise
-*/
-bool VideoProcessor::jumpTo(long index)
-{
-	if (index >= length){
-		return 1;
-	}
-
-	cv::Mat frame;
-	bool re = capture.set(CV_CAP_PROP_POS_FRAMES, index);
-
-	if (re && !isStop()){
-		capture.read(frame);
-		//emit showFrame(frame);
-	}
-
-	return re;
-}
-
-
-/**
-* jumpToMS	-	jump to a position at a time
-*
-* @param pos	-	time
-*
-* @return True if success. False otherwise
-*
-*/
-bool VideoProcessor::jumpToMS(double pos)
-{
-	return capture.set(CV_CAP_PROP_POS_MSEC, pos);
-}
-
-
-/**
 * close	-	close the video
 *
 */
@@ -574,17 +366,6 @@ bool VideoProcessor::isStop()
 }
 
 /**
-* isModified	-	Is the video modified?
-*
-*
-* @return True if modified. False otherwise
-*/
-bool VideoProcessor::isModified()
-{
-	return modify;
-}
-
-/**
 * isOpened	-	Is the player opened?
 *
 *
@@ -605,67 +386,6 @@ bool VideoProcessor::isOpened()
 bool VideoProcessor::getNextFrame(cv::Mat &frame)
 {
 	return capture.read(frame);
-}
-
-/**
-* writeNextFrame	-	to write the output frame
-*
-* @param frame	-	the frame to be written
-*/
-void VideoProcessor::writeNextFrame(cv::Mat &frame)
-{
-	if (extension.length()) { // then we write images
-
-		std::stringstream ss;
-		ss << outputFile << std::setfill('0') << std::setw(digits) << curIndex++ << extension;
-		cv::imwrite(ss.str(), frame);
-
-	}
-	else { // then write video file
-
-		writer.write(frame);
-	}
-}
-
-/**
-* playIt	-	play the frames of the sequence
-*
-*/
-void VideoProcessor::playIt()
-{
-	// current frame
-	cv::Mat input;
-
-	// if no capture device has been set
-	if (!isOpened())
-		return;
-
-	// is playing
-	stop = false;
-
-	// update buttons
-	//emit updateBtn();
-
-	while (!isStop()) {
-
-		// read next frame if any
-		if (!getNextFrame(input))
-			break;
-
-		curPos = capture.get(CV_CAP_PROP_POS_FRAMES);
-
-		// display input frame
-		//emit showFrame(input);
-
-		// update the progress bar
-		//emit updateProgressBar();
-
-		// introduce a delay
-		//emit sleep(delay);
-	}
-	if (!isStop()){
-		//emit revert();
-	}
 }
 
 /**
@@ -776,31 +496,16 @@ int VideoProcessor::colorMagnify()
 	// is processing
 	stop = false;
 
-	// save the current position
-	long pos = curPos;
-
-	// jump to the first frame
-	jumpTo(0);
-
 	// 1. spatial filtering
 	while (getNextFrame(input) && !isStop()) {
-		//std::cout << "ok";
 		input.convertTo(temp, CV_32FC3);
 		frames.push_back(temp.clone());
+
 		// spatial filtering
 		std::vector<cv::Mat> pyramid;
 		spatialFilter(temp, pyramid);
 		downSampledFrames.push_back(pyramid.at(levels - 1));
-		// update process
-		//std::string msg = "Spatial Filtering...";
-		//emit updateProcessProgress(msg, floor((fnumber++) * 100.0 / length));
 	}
-	if (isStop()){
-		//emit closeProgressDialog();
-		fnumber = 0;
-		return 0;
-	}
-	//emit closeProgressDialog();
 
 	// 2. concat all the frames into a single large Mat
 	// where each column is a reshaped single frame
@@ -839,9 +544,6 @@ int VideoProcessor::colorMagnify()
 		cv::split(output, cl);
 		cv::Scalar mean = cv::mean(cl[1]);
 		markdata.push_back(mean[0]);
-
-		//tempWriter.write(output);
-		//emit updateProcessProgress(msg, floor((fnumber++) * 100.0 / length));
 	}
 
 	// Smooth the curve
