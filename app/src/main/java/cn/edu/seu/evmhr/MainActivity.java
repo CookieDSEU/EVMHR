@@ -1,13 +1,18 @@
 package cn.edu.seu.evmhr;
+import android.Manifest;
+import android.app.Activity;
 import android.app.ProgressDialog;
 import android.content.Context;
 import android.content.DialogInterface;
+import android.content.pm.PackageManager;
 import android.hardware.Camera;
 import android.media.MediaRecorder;
 import android.os.CountDownTimer;
 import android.os.Handler;
 import android.os.Message;
 import android.os.PowerManager;
+import android.support.v4.app.ActivityCompat;
+import android.support.v4.content.ContextCompat;
 import android.support.v7.app.ActionBarDrawerToggle;
 import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
@@ -68,13 +73,35 @@ public class MainActivity extends AppCompatActivity implements OnClickListener, 
     private FFmpeg ffmpeg;
     private ProgressDialog mProgressDialog;
     private String result;
+    // Storage Permissions
+    private static final int REQUEST_EXTERNAL_STORAGE = 1;
+    private static String[] PERMISSIONS_STORAGE = {
+            Manifest.permission.READ_EXTERNAL_STORAGE,
+            Manifest.permission.WRITE_EXTERNAL_STORAGE };
+    /**
+     * Checks if the app has permission to write to device storage
+     * If the app does not has permission then the user will be prompted to
+     * grant permissions
+     * @param activity
+     */
+    public static void verifyStoragePermissions(Activity activity) {
+// Check if we have write permission
+        int permission = ActivityCompat.checkSelfPermission(activity,
+                Manifest.permission.WRITE_EXTERNAL_STORAGE);
 
+        if (permission != PackageManager.PERMISSION_GRANTED) {
+// We don't have permission so prompt the user
+            ActivityCompat.requestPermissions(activity, PERMISSIONS_STORAGE,
+                    REQUEST_EXTERNAL_STORAGE);
+        }
+    }
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
         //getWindow().setFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN, WindowManager.LayoutParams.FLAG_FULLSCREEN);// 设置全屏
         // 选择支持半透明模式，在有surfaceview的activity中使用
+        verifyStoragePermissions(MainActivity.this);
         initViews();
         initFfmepg();
     }
@@ -165,11 +192,22 @@ public class MainActivity extends AppCompatActivity implements OnClickListener, 
 
 
     private boolean initCamera() {
+        // check Android 6 permission
+        if (ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA)
+                == PackageManager.PERMISSION_GRANTED) {
+            Log.i("TEST","Granted");
+            //init(barcodeScannerView, getIntent(), null);
+        } else {
+            ActivityCompat.requestPermissions(this,
+                    new String[]{Manifest.permission.CAMERA}, 1);//1 can be another integer
+        }
         try {
             if (frontCamera == 0) {
                 mCamera = Camera.open(Camera.CameraInfo.CAMERA_FACING_BACK);
+                mCamera.unlock();
             } else {
                 mCamera = Camera.open(Camera.CameraInfo.CAMERA_FACING_FRONT);
+                mCamera.unlock();
             }
             mCamera.lock();
             mSurfaceHolder = mVideoView.getHolder();
@@ -405,12 +443,12 @@ public class MainActivity extends AppCompatActivity implements OnClickListener, 
         // 设置录制的视频编码h263 h264
         mediaRecorder.setVideoEncoder(MediaRecorder.VideoEncoder.H263);
         // 设置视频录制的分辨率。必须放在设置编码和格式的后面，否则报错
-        mediaRecorder.setVideoSize(previewWidth, previewHeight);
+        //mediaRecorder.setVideoSize(previewWidth, previewHeight);
         // 设置视频的比特率
         mediaRecorder.setVideoEncodingBitRate(5*previewHeight *previewWidth );
         // // 设置录制的视频帧率。必须放在设置编码和格式的后面，否则报错
         if (defaultVideoFrameRate != -1) {
-            mediaRecorder.setVideoFrameRate(defaultVideoFrameRate);
+            //mediaRecorder.setVideoFrameRate(defaultVideoFrameRate);
         }
         // 设置视频文件输出的路径
         localPath = CacheUtil.getSDCacheDir("video") + "/"+ VIDEOID + ".mp4";
@@ -430,6 +468,7 @@ public class MainActivity extends AppCompatActivity implements OnClickListener, 
         return true;
 
     }
+
     //停止录制
     public void stopRecording() {
         if (mediaRecorder != null) {
